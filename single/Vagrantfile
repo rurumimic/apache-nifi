@@ -1,0 +1,84 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$forwarded_ports = {
+  8080 => 8080,
+  9443 => 9443,
+  6342 => 6342,
+}
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "ubuntu/focal64"
+
+  $forwarded_ports.each do |guest, host|
+    config.vm.network "forwarded_port", guest: guest, host: host, auto_correct: true
+  end
+
+  config.vm.network :private_network, ip: "192.168.49.101"
+
+  config.vm.synced_folder "../files", "/files"
+  config.vm.synced_folder "./share", "/share"
+  
+  config.vm.provider "virtualbox" do |vb|
+    vb.cpus = "2"
+    vb.memory = "2048"
+  end
+
+  # Update ca certs
+  # config.vm.synced_folder "../certs", "/certs"
+  # config.vm.provision "shell" do |s|
+  #   s.path = "https://raw.githubusercontent.com/rurumimic/no-check-certificate/main/ubuntu/focal64/update-certs.sh"
+  # end
+
+  # Install JDK 8
+  config.vm.provision "shell", inline: <<-SHELL
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y openjdk-8-jdk-headless
+    echo 'export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64' >> /etc/profile
+  SHELL
+    
+  # Create NiFi user and group
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "Create NiFi user and group"
+    groupadd nifi
+    useradd -m -g nifi -s /bin/bash nifi
+  SHELL
+
+  # Install Nifi and Toolkit
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "Install Nifi and Toolkit"
+    # NiFi
+    mkdir -p /opt/nifi
+    cp -r /files/nifi-1.13.0 /opt/nifi/nifi-1.13.0
+    ln -s /opt/nifi/nifi-1.13.0 /opt/nifi/current
+    chown -R nifi:nifi /opt/nifi
+    # Toolkit
+    mkdir -p /opt/nifi-toolkit
+    cp -r /files/nifi-toolkit-1.13.0 /opt/nifi-toolkit/nifi-toolkit-1.13.0
+    ln -s /opt/nifi-toolkit/nifi-toolkit-1.13.0 /opt/nifi-toolkit/current
+    chown -R nifi:nifi /opt/nifi-toolkit
+    chmod -R +rx /opt/nifi-toolkit
+    # Env
+    echo 'export NIFI_HOME=/opt/nifi/current' >> /etc/profile
+    echo 'export NIFI_TOOLKIT_HOME=/opt/nifi-toolkit/current' >> /etc/profile
+    echo 'export PATH=$PATH:$NIFI_HOME/bin' >> /etc/profile
+    echo 'export PATH=$PATH:$NIFI_TOOLKIT_HOME/bin' >> /etc/profile
+  SHELL
+
+  # Add NiFi systemd file
+  config.vm.provision "shell", inline: <<-SHELL
+    echo "Add /etc/systemd/system/nifi.service"
+    cp /share/nifi.service /etc/systemd/system/nifi.service
+  SHELL
+
+  # Permissions
+  config.vm.provision "shell", inline: <<-SHELL
+    chown -R nifi:nifi /opt/nifi/current/conf
+  SHELL
+
+  # daemon-reload
+  config.vm.provision "shell", inline: <<-SHELL
+    systemctl daemon-reload
+  SHELL
+end
