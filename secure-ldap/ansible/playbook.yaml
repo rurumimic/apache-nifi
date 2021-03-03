@@ -18,7 +18,7 @@
           192.168.20.10 ldap.example.com ldap
           192.168.20.11 node1.nifi node1
     - name: Set hostname
-      shell: hostnamectl set-hostname ldap
+      shell: hostnamectl set-hostname ldap.example.com
     - name: Create .ssh directory
       file:
         path: /root/.ssh
@@ -160,6 +160,8 @@
         recurse: yes
         owner: ldap
         group: ldap
+    - name: Set hostname
+      shell: hostnamectl set-hostname ldap.example.com
     - name: Start slapd
       systemd:
         name: slapd

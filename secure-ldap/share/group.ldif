@@ -1,0 +1,6 @@
+dn: cn=admins,ou=group,dc=example,dc=com
+objectClass: groupOfNames
+objectClass: top
+cn: admins
+member: cn=Keanu Reeves,ou=people,dc=example,dc=com
+member: cn=Denzel Washington,ou=people,dc=example,dc=com
