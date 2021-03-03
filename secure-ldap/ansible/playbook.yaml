@@ -177,6 +177,11 @@
       systemd:
         name: slapd
         state: restarted
+    - name: Add new entry
+      run_once: true
+      shell: ldapadd -x -w password -D "cn=manager,ou=admins,dc=example,dc=com" -Z -f keanu.ldif
+      args:
+        chdir: /share # Shared directory
   handlers:
     - name: Restart rsyslog
       systemd:

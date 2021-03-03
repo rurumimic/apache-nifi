@@ -163,6 +163,15 @@ Vagrant.configure("2") do |config|
         systemctl daemon-reload
       SHELL
 
+      config.vm.provision "shell", inline: <<-SHELL
+        systemctl enable nifi
+        systemctl start nifi
+        mkdir -m 777 /tmp/in
+        mkdir -m 777 /tmp/out
+        echo '1,apple' > /tmp/in/apple.out
+        chmod 666 /tmp/in/apple.out
+      SHELL
+
     end
   end
 
